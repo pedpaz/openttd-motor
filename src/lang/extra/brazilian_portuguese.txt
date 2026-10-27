@@ -12,7 +12,7 @@ STR_CONFIG_SETTING_CARGO_SPOILAGE_RATE_VALUE                    :{COMMA}% por pe
 STR_CONFIG_SETTING_CARGO_SPOILAGE_RATE_DISABLED                 :Desligado
 
 STR_CONFIG_SETTING_FUEL_CONSUMPTION                             :Consumo de combustível e reabastecimento: {STRING2}
-STR_CONFIG_SETTING_FUEL_CONSUMPTION_HELPTEXT                    :Quando ligado, trens e automóveis pagam só metade do custo fixo de operação, mais o combustível de acordo com o esforço (potência total ao acelerar ou subir, parcial em velocidade de cruzeiro, marcha lenta parado). Trens a vapor e a diesel e automóveis têm tanque: procuram um depósito abaixo de 25% e ficam limitados a 25% da velocidade máxima com o tanque vazio. Trens elétricos e bondes não têm tanque
+STR_CONFIG_SETTING_FUEL_CONSUMPTION_HELPTEXT                    :Quando ligado, trens e automóveis pagam só metade do custo fixo de operação, mais o combustível de acordo com o esforço (potência total ao acelerar ou subir, parcial em velocidade de cruzeiro, marcha lenta parado). Trens a vapor e a diesel e automóveis têm tanque: procuram um depósito abaixo de 35% e ficam limitados a 25% da velocidade máxima com o tanque vazio. Trens elétricos e bondes não têm tanque
 STR_CONFIG_SETTING_FUEL_TANK_DAYS_ROAD                          :Tanque de combustível dos automóveis: {STRING2}
 STR_CONFIG_SETTING_FUEL_TANK_DAYS_RAIL                          :Tanque de combustível dos trens: {STRING2}
 STR_CONFIG_SETTING_FUEL_TANK_DAYS_HELPTEXT                      :Tamanho do tanque, medido em dias rodando com potência total. Rodando com potência parcial o tanque dura mais

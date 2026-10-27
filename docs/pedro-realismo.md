@@ -53,14 +53,14 @@ Num trem com várias locomotivas, quem decide a fonte é a locomotiva da frente.
 
 ### 2.4 Tanque e reabastecimento
 
-- Tanque medido em **dias rodando em potência total**: automóveis `vehicle.fuel_tank_days_road` (padrão **30 dias**), trens `vehicle.fuel_tank_days_rail` (padrão **45 dias**), ambos de 1 a 120. Em cruzeiro (35 %) o tanque dura ~3× mais.
+- Tanque medido em **dias rodando em potência total**: automóveis `vehicle.fuel_tank_days_road` (padrão **40 dias**), trens `vehicle.fuel_tank_days_rail` (padrão **60 dias**), ambos de 1 a 120. Em cruzeiro (35 %) o tanque dura ~3× mais.
 - O tanque esvazia com o mesmo consumo do item 2.1 (vapor 1,7× mais rápido).
-- **Abaixo de 25 %**: o veículo passa a "precisar de revisão" e procura um depósito, mesmo com intervalo de revisão desligado ou com "sem revisão se quebras desligadas". Nessa busca ele aceita um depósito **4× mais fora do caminho** do que numa revisão normal (`maximum_go_to_depot_penalty × 4`).
+- **Abaixo de 35 %**: o veículo passa a "precisar de revisão" e procura um depósito, mesmo com intervalo de revisão desligado ou com "sem revisão se quebras desligadas". Nessa busca ele aceita um depósito **4× mais fora do caminho** do que numa revisão normal (`maximum_go_to_depot_penalty × 4`).
 - **Revisão no depósito = tanque cheio** (qualquer passagem pelo depósito que conte como revisão).
 - **Tanque vazio**: o veículo não fica preso, só anda a no máximo **25 % da velocidade máxima** até reabastecer.
-- Janela de detalhes do veículo mostra uma linha **"Combustível: 63%"** (laranja abaixo de 25 % "procurando depósito", vermelho "vazio").
+- Janela de detalhes do veículo mostra uma linha **"Combustível: 63%"** (laranja abaixo de 35 % "procurando depósito", vermelho "vazio").
 - Save antigo carrega com tanque cheio e nada de combustível pendente.
-- Calibragem (testado): com tanques de 8/12 dias o alcance ficou curto demais (um ônibus urbano esvaziava em ~10 dias e a maioria chegava ao depósito já vazia). Por isso o padrão subiu para 30/45 dias: um ônibus roda cerca de um mês e meio entre abastecimentos e a reserva de 25 % dá tempo de chegar ao depósito.
+- Calibragem (testado): com tanques de 8/12 dias o alcance ficou curto demais (um ônibus urbano esvaziava em ~10 dias e a maioria chegava ao depósito já vazia). Com 30/45 dias e reserva de 25 %, numa cidade congestionada ainda metade chegava vazia. Ficou assim: tanques de **40/60 dias** e reserva de **35 %**; um ônibus urbano roda uns dois meses entre abastecimentos.
 - Para a IA (script) e na janela do veículo, "custo de operação" passa a ser só a parte fixa (50 %); a janela de compra continua mostrando o custo original cheio.
 
 ## 3. Oficina (`vehicle.service_maintenance_cost`)

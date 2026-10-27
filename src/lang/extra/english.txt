@@ -795,7 +795,7 @@ STR_CONFIG_SETTING_CARGO_SPOILAGE_RATE_VALUE                    :{COMMA}% per ag
 STR_CONFIG_SETTING_CARGO_SPOILAGE_RATE_DISABLED                 :Disabled
 
 STR_CONFIG_SETTING_FUEL_CONSUMPTION                             :Fuel consumption and refuelling: {STRING2}
-STR_CONFIG_SETTING_FUEL_CONSUMPTION_HELPTEXT                    :When enabled, trains and road vehicles pay only half of their fixed running costs, plus fuel according to the work done (full power when accelerating or climbing, partial power when cruising, idling when stopped). Steam and diesel trains and road vehicles have a fuel tank: they look for a depot when below 25% and are limited to 25% of their maximum speed when empty. Electric trains and trams have no tank
+STR_CONFIG_SETTING_FUEL_CONSUMPTION_HELPTEXT                    :When enabled, trains and road vehicles pay only half of their fixed running costs, plus fuel according to the work done (full power when accelerating or climbing, partial power when cruising, idling when stopped). Steam and diesel trains and road vehicles have a fuel tank: they look for a depot when below 35% and are limited to 25% of their maximum speed when empty. Electric trains and trams have no tank
 STR_CONFIG_SETTING_FUEL_TANK_DAYS_ROAD                          :Road vehicle fuel tank size: {STRING2}
 STR_CONFIG_SETTING_FUEL_TANK_DAYS_RAIL                          :Train fuel tank size: {STRING2}
 STR_CONFIG_SETTING_FUEL_TANK_DAYS_HELPTEXT                      :Size of the fuel tank, measured in days of running at full power. Running at partial power makes a tank last longer
