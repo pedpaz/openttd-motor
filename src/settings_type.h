@@ -874,6 +874,10 @@ struct VehicleSettings {
 	uint16_t               rail_depot_speed_limit;                ///< maximum speed entering/existing rail depots
 	bool                   non_leading_engines_keep_name;         ///< allow engines moved to a non-leading position to retain their custom name
 	uint8_t                cargo_spoilage_rate;                   ///< percentage of overdue perishable cargo lost per cargo aging period (0 = disabled)
+	bool                   fuel_consumption;                      ///< charge fuel according to the work done and give vehicles a fuel tank
+	uint8_t                fuel_tank_days_road;                   ///< road vehicle fuel tank size, in days of full-power running
+	uint8_t                fuel_tank_days_rail;                   ///< train fuel tank size, in days of full-power running
+	bool                   service_maintenance_cost;              ///< charge a workshop cost whenever a vehicle is serviced in a depot
 };
 
 /** Settings related to the economy. */

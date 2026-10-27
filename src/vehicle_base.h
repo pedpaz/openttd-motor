@@ -367,6 +367,9 @@ public:
 	uint8_t tick_counter = 0;                    ///< Increased by one for each tick
 	uint8_t order_occupancy_average = 0;         ///< NOSAVE: order occupancy average. 0 = invalid, 1 = n/a, 16-116 = 0-100%
 	uint16_t running_ticks = 0;                  ///< Number of ticks this vehicle was not stopped this day
+	uint32_t fuel_used = 0;                      ///< Front vehicle only: fuel used since the last refuel, in 1/100 of a full-power tick (0 = full tank). @see VehicleTickFuel
+	uint32_t fuel_unpaid = 0;                    ///< Front vehicle only: fuel used since fuel was last paid for, same unit as #fuel_used.
+	uint8_t fuel_load_this_tick = 0;             ///< NOSAVE: engine load in percent set by the speed update of the current tick, consumed (and reset) by VehicleTickFuel in the same tick.
 
 	VehStates vehstatus{};                       ///< Status
 	uint8_t subtype = 0;                         ///< subtype (Filled with values from #AircraftSubType/#DisasterSubType/#EffectVehicleType/#GroundVehicleSubtypeFlags)
@@ -914,6 +917,12 @@ public:
 
 	bool NeedsServicing() const;
 	bool NeedsAutomaticServicing() const;
+
+	bool UsesFuelTank() const;
+	uint32_t GetFuelTankCapacity() const;
+	uint GetFuelLevelPercent() const;
+	bool NeedsRefuelling() const;
+	bool IsOutOfFuel() const;
 
 	/**
 	 * Determine the location for the station where the vehicle goes to next.

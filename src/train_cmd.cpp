@@ -7017,10 +7017,10 @@ static bool TrainLocoHandler(Train *consist, bool mode)
 }
 
 /**
- * Get running cost for the train consist.
+ * Get the original running cost for the train consist, as if it was moving and without fuel accounting.
  * @return Yearly running costs.
  */
-Money Train::GetRunningCost() const
+Money Train::GetFullRunningCost() const
 {
 	Money cost = 0;
 	const Train *v = this;
@@ -7037,6 +7037,18 @@ Money Train::GetRunningCost() const
 
 		cost += GetPrice(e->VehInfo<RailVehicleInfo>().running_cost_class, cost_factor, e->GetGRF());
 	} while ((v = v->GetNextVehicle()) != nullptr);
+
+	return cost;
+}
+
+/**
+ * Get running cost for the train consist.
+ * With fuel consumption enabled this is only the fixed part; fuel is paid separately, see PayVehicleFuelCost.
+ * @return Yearly running costs.
+ */
+Money Train::GetRunningCost() const
+{
+	Money cost = ApplyFuelFixedRunningCostShare(this->GetFullRunningCost());
 
 	if (this->cur_speed == 0) {
 		if (this->IsInDepot()) {
@@ -7084,13 +7096,16 @@ bool Train::Tick()
  */
 static void CheckIfTrainNeedsService(Train *v)
 {
-	if (Company::Get(v->owner)->settings.vehicle.servint_trains == 0 || !v->NeedsAutomaticServicing()) return;
+	/* A train low on fuel looks for a depot even when servicing is disabled. */
+	if ((Company::Get(v->owner)->settings.vehicle.servint_trains == 0 && !v->NeedsRefuelling()) || !v->NeedsAutomaticServicing()) return;
 	if (v->IsChainInDepot()) {
 		VehicleServiceInDepot(v);
 		return;
 	}
 
 	uint max_penalty = _settings_game.pf.yapf.maximum_go_to_depot_penalty;
+	/* Running out of fuel: accept a depot further out of the way. */
+	if (v->NeedsRefuelling()) max_penalty *= FUEL_LOW_DEPOT_PENALTY_FACTOR;
 
 	FindDepotData tfdd = FindClosestTrainDepot(v, max_penalty * (v->current_order.IsType(OT_GOTO_DEPOT) ? 2 : 1));
 	/* Only go to the depot if it is not too far out of our way. */
@@ -7144,6 +7159,9 @@ void Train::OnPeriodic()
 			TileIndex tile = Station::Get(this->current_order.GetDestination().ToStationID())->train_station.tile;
 			if (tile != INVALID_TILE) this->dest_tile = tile;
 		}
+
+		/* fuel used since the last period */
+		PayVehicleFuelCost(this, this->GetFullRunningCost());
 
 		if (this->running_ticks != 0) {
 			/* running costs */

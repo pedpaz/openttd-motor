@@ -1079,6 +1079,9 @@ NamedSaveLoadTable GetVehicleDescription(VehicleType vt)
 		NSL("running_ticks",            SLE_CONDVAR_X(Vehicle, running_ticks,             SLE_UINT16,                 SLV_88, SL_MAX_VERSION, SlXvFeatureTest([](uint16_t version, bool version_in_range, const std::array<uint16_t, XSLFI_SIZE> &feature_versions) -> bool {
 			return version_in_range && (SlXvIsFeaturePresent(feature_versions, XSLFI_SPRINGPP, 2) || SlXvIsFeaturePresent(feature_versions, XSLFI_JOKERPP) || SlXvIsFeaturePresent(feature_versions, XSLFI_CHILLPP) || SlXvIsFeaturePresent(feature_versions, XSLFI_VARIABLE_DAY_LENGTH, 2));
 		}))),
+		/* Fuel state: savegames without it load with a full tank and nothing unpaid (both 0). */
+		NSL("fuel_used",                SLE_CONDVAR_X(Vehicle, fuel_used,                 SLE_UINT32,                 SL_MIN_VERSION, SL_MAX_VERSION, SlXvFeatureTest(XSLFTO_AND, XSLFI_MOTOR_VEHICLE_FUEL))),
+		NSL("fuel_unpaid",              SLE_CONDVAR_X(Vehicle, fuel_unpaid,               SLE_UINT32,                 SL_MIN_VERSION, SL_MAX_VERSION, SlXvFeatureTest(XSLFTO_AND, XSLFI_MOTOR_VEHICLE_FUEL))),
 
 		NSL("cur_implicit_order_index",       SLE_VAR(Vehicle, cur_implicit_order_index,   SLE_VEHORDERID)),
 		NSL("cur_real_order_index",       SLE_CONDVAR(Vehicle, cur_real_order_index,       SLE_VEHORDERID,            SLV_158, SL_MAX_VERSION)),

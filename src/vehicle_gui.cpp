@@ -3072,6 +3072,7 @@ struct VehicleDetailsWindow : Window {
 	bool vehicle_slots_line_shown = false;
 	bool vehicle_speed_restriction_line_shown = false;
 	bool vehicle_speed_adaptation_line_shown = false;
+	bool vehicle_fuel_line_shown = false;
 
 	enum DropDownAction {
 		VDWDDA_CLEAR_SPEED_RESTRICTION,
@@ -3183,6 +3184,19 @@ struct VehicleDetailsWindow : Window {
 		return (v->type == VehicleType::Train && _settings_game.vehicle.train_speed_adaptation);
 	}
 
+	bool ShouldShowFuelLine(const Vehicle *v) const
+	{
+		return v->UsesFuelTank();
+	}
+
+	/** Get the fuel level line of a vehicle with a fuel tank. */
+	static std::string GetFuelLineString(const Vehicle *v)
+	{
+		if (v->IsOutOfFuel()) return GetString(STR_VEHICLE_INFO_FUEL_LEVEL_EMPTY);
+		const uint level = v->GetFuelLevelPercent();
+		return GetString(v->NeedsRefuelling() ? STR_VEHICLE_INFO_FUEL_LEVEL_LOW : STR_VEHICLE_INFO_FUEL_LEVEL, level);
+	}
+
 	std::vector<TraceRestrictSlotID> GetVehicleSlots(const Vehicle *v) const
 	{
 		std::vector<TraceRestrictSlotID> slots;
@@ -3207,12 +3221,14 @@ struct VehicleDetailsWindow : Window {
 				this->vehicle_slots_line_shown = ShouldShowSlotsLine(v);
 				this->vehicle_speed_restriction_line_shown = ShouldShowSpeedRestrictionLine(v);
 				this->vehicle_speed_adaptation_line_shown = ShouldShowSpeedAdaptationLine(v);
+				this->vehicle_fuel_line_shown = ShouldShowFuelLine(v);
 				int lines = 4;
 				if (this->vehicle_group_line_shown) lines++;
 				if (this->vehicle_weight_ratio_line_shown) lines++;
 				if (this->vehicle_slots_line_shown) lines++;
 				if (this->vehicle_speed_restriction_line_shown) lines++;
 				if (this->vehicle_speed_adaptation_line_shown) lines++;
+				if (this->vehicle_fuel_line_shown) lines++;
 				size.height = lines * GetCharacterHeight(FontSize::Normal) + padding.height;
 
 				format_buffer buffer;
@@ -3227,6 +3243,10 @@ struct VehicleDetailsWindow : Window {
 				process(STR_VEHICLE_INFO_WEIGHT_POWER_MAX_SPEED, max_value_i16, max_value_i16, max_value_i16);
 				process(STR_VEHICLE_INFO_WEIGHT_POWER_MAX_SPEED_MAX_TE, max_value_i16, max_value_i16, max_value_i16, max_value_i16);
 				process(STR_VEHICLE_INFO_RELIABILITY_BREAKDOWNS, max_value_i16, max_value_i16, max_value_i16);
+				if (this->vehicle_fuel_line_shown) {
+					process(STR_VEHICLE_INFO_FUEL_LEVEL_LOW, 100);
+					process(STR_VEHICLE_INFO_FUEL_LEVEL_EMPTY);
+				}
 				process(this->GetRunningCostString(), STR_VEHICLE_INFO_AGE, max_value_i16, max_value_i16, max_value_i16);
 
 				const uint64_t max_value_16 = GetParamMaxValue(1 << 16);
@@ -3512,11 +3532,18 @@ struct VehicleDetailsWindow : Window {
 					tr.top += GetCharacterHeight(FontSize::Normal);
 				}
 
+				bool should_show_fuel = this->ShouldShowFuelLine(v);
+				if (should_show_fuel) {
+					DrawString(tr, GetFuelLineString(v));
+					tr.top += GetCharacterHeight(FontSize::Normal);
+				}
+
 				if (this->vehicle_weight_ratio_line_shown != should_show_weight_ratio ||
 						this->vehicle_weight_ratio_line_shown != should_show_weight_ratio ||
 						this->vehicle_slots_line_shown != should_show_slots ||
 						this->vehicle_speed_restriction_line_shown != should_show_speed_restriction ||
-						this->vehicle_speed_adaptation_line_shown != should_show_speed_adaptation) {
+						this->vehicle_speed_adaptation_line_shown != should_show_speed_adaptation ||
+						this->vehicle_fuel_line_shown != should_show_fuel) {
 					const_cast<VehicleDetailsWindow *>(this)->ReInit();
 				}
 				break;

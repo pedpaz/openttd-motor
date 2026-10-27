@@ -50,7 +50,18 @@ struct Viewport;
 template <VehicleType T>
 bool IsValidImageIndex(uint8_t image_index);
 
+/* Fuel consumption (openttd-motor realism), see VehicleTickFuel. */
+static constexpr uint8_t FUEL_LOAD_FULL = 100;        ///< Engine load in percent while accelerating or climbing.
+static constexpr uint8_t FUEL_LOAD_CRUISE = 35;       ///< Engine load in percent while holding a steady speed.
+static constexpr uint8_t FUEL_LOAD_IDLE = 5;          ///< Engine load in percent while idling (standing, braking or coasting).
+static constexpr uint FUEL_LOW_PERCENT = 25;          ///< Below this fuel level (percent of the tank) the vehicle looks for a depot.
+static constexpr uint FUEL_EMPTY_SPEED_PERCENT = 25;  ///< With an empty tank the vehicle is limited to this percentage of its maximum speed.
+static constexpr uint FUEL_LOW_DEPOT_PENALTY_FACTOR = 4; ///< A vehicle low on fuel accepts a depot this many times further out of its way than for normal servicing.
+
 void VehicleServiceInDepot(Vehicle *v);
+void VehicleTickFuel(Vehicle *front);
+Money ApplyFuelFixedRunningCostShare(Money cost);
+void PayVehicleFuelCost(Vehicle *front, Money full_running_cost);
 uint CountVehiclesInChain(const Vehicle *v);
 void CallVehicleTicks();
 uint8_t CalcPercentVehicleFilled(const Vehicle *v, StringID *colour);

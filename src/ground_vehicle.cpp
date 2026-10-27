@@ -428,6 +428,15 @@ void GroundVehicle<T, Type>::UpdateZPositionInWormhole()
 template <class T, VehicleType Type>
 uint GroundVehicle<T, Type>::DoUpdateSpeed(GroundVehicleAcceleration accel, int min_speed, int max_speed, int advisory_max_speed, bool use_realistic_braking)
 {
+	/* An empty fuel tank limits the vehicle to a fraction of its maximum speed until it is refuelled in a depot. */
+	if (this->IsOutOfFuel()) {
+		const int fuel_limit = std::max<int>(1, this->vcache.cached_max_speed * FUEL_EMPTY_SPEED_PERCENT / 100);
+		max_speed = std::min(max_speed, fuel_limit);
+		advisory_max_speed = std::min(advisory_max_speed, fuel_limit);
+	}
+
+	const int old_subspeed = (int)this->subspeed + (this->cur_speed << 8);
+	const int traction_subspeed = old_subspeed + accel.acceleration;
 	int new_subspeed = ((int)this->subspeed + accel.acceleration) + (this->cur_speed << 8);
 	int new_lb_subspeed = 0;
 
@@ -487,6 +496,22 @@ uint GroundVehicle<T, Type>::DoUpdateSpeed(GroundVehicleAcceleration accel, int 
 	new_subspeed = std::min(new_subspeed, (tempmax << 8) + 255);
 
 	new_subspeed = std::max(new_subspeed, min_speed << 8);
+
+	/* Work out the engine load for fuel consumption (see VehicleTickFuel):
+	 * full power while the speed is only limited by traction (accelerating, or climbing even if slowing down),
+	 * cruising power while the speed is held at a limit, and idle while braking or coasting down to a lower limit. */
+	uint8_t fuel_load;
+	if (T::From(this)->GetAccelerationStatus() == AS_BRAKE) {
+		fuel_load = FUEL_LOAD_IDLE;
+	} else if (new_subspeed >= traction_subspeed || new_subspeed > old_subspeed) {
+		fuel_load = FUEL_LOAD_FULL;
+	} else if (new_subspeed == old_subspeed) {
+		fuel_load = FUEL_LOAD_CRUISE;
+	} else {
+		fuel_load = FUEL_LOAD_IDLE;
+	}
+	/* Trains may update their speed twice per tick; keep the highest load. */
+	this->fuel_load_this_tick = std::max(this->fuel_load_this_tick, fuel_load);
 
 	this->cur_speed = new_subspeed >> 8;
 	this->subspeed = (uint8_t)new_subspeed;

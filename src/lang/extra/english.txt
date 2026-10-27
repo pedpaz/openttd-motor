@@ -794,6 +794,16 @@ STR_CONFIG_SETTING_CARGO_SPOILAGE_RATE_HELPTEXT                 :Perishable carg
 STR_CONFIG_SETTING_CARGO_SPOILAGE_RATE_VALUE                    :{COMMA}% per aging period
 STR_CONFIG_SETTING_CARGO_SPOILAGE_RATE_DISABLED                 :Disabled
 
+STR_CONFIG_SETTING_FUEL_CONSUMPTION                             :Fuel consumption and refuelling: {STRING2}
+STR_CONFIG_SETTING_FUEL_CONSUMPTION_HELPTEXT                    :When enabled, trains and road vehicles pay only half of their fixed running costs, plus fuel according to the work done (full power when accelerating or climbing, partial power when cruising, idling when stopped). Steam and diesel trains and road vehicles have a fuel tank: they look for a depot when below 25% and are limited to 25% of their maximum speed when empty. Electric trains and trams have no tank
+STR_CONFIG_SETTING_FUEL_TANK_DAYS_ROAD                          :Road vehicle fuel tank size: {STRING2}
+STR_CONFIG_SETTING_FUEL_TANK_DAYS_RAIL                          :Train fuel tank size: {STRING2}
+STR_CONFIG_SETTING_FUEL_TANK_DAYS_HELPTEXT                      :Size of the fuel tank, measured in days of running at full power. Running at partial power makes a tank last longer
+STR_CONFIG_SETTING_FUEL_TANK_DAYS_VALUE                         :{COMMA} day{P "" s} at full power
+
+STR_CONFIG_SETTING_SERVICE_MAINTENANCE_COST                     :Charge workshop maintenance when servicing: {STRING2}
+STR_CONFIG_SETTING_SERVICE_MAINTENANCE_COST_HELPTEXT            :When enabled, every time a vehicle is serviced in a depot it is charged 0.5% of its current value, increased by 10% for each year of age
+
 STR_CONFIG_OCCUPANCY_SMOOTHNESS                                 :Smoothness of order occupancy measurement: {STRING2}
 STR_CONFIG_OCCUPANCY_SMOOTHNESS_HELPTEXT                        :0% sets the measurement to the most recent value, 100% leaves it unchanged
 
@@ -1717,6 +1727,9 @@ STR_VEHICLE_INFO_SPEED_RESTRICTION                              :{BLACK}Speed re
 STR_VEHICLE_INFO_SPEED_ADAPTATION_EXEMPT                        :{BLACK}Exempt from speed adaptation
 STR_VEHICLE_INFO_SPEED_ADAPTATION_LIMIT                         :{BLACK}Speed adaptation: {LTBLUE}{VELOCITY}
 STR_VEHICLE_INFO_SPEED_ADAPTATION_NONE                          :{BLACK}Speed adaptation: {LTBLUE}None
+STR_VEHICLE_INFO_FUEL_LEVEL                                     :{BLACK}Fuel: {LTBLUE}{NUM}%
+STR_VEHICLE_INFO_FUEL_LEVEL_LOW                                 :{BLACK}Fuel: {ORANGE}{NUM}% (looking for a depot)
+STR_VEHICLE_INFO_FUEL_LEVEL_EMPTY                               :{BLACK}Fuel: {RED}empty (reduced speed)
 
 STR_VEHICLE_DETAILS_TRAIN_ENGINE_BUILT_AND_VALUE_AND_SPEED      :{LTBLUE}{ENGINE}{BLACK}   Built: {LTBLUE}{NUM}{BLACK} Value: {LTBLUE}{CURRENCY_LONG} {BLACK}Max. speed: {LTBLUE}{VELOCITY}
 STR_VEHICLE_DETAILS_TRAIN_WAGON_VALUE_AND_SPEED                 :{LTBLUE}{ENGINE}{BLACK}   Value: {LTBLUE}{CURRENCY_LONG} {BLACK}Max. speed: {LTBLUE}{VELOCITY}

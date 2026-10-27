@@ -1014,6 +1014,10 @@ SettingsContainer &GetSettingsTree()
 			vehicles->Add(new SettingEntry("vehicle.safer_crossings"));
 			vehicles->Add(new SettingEntry("vehicle.non_leading_engines_keep_name"));
 			vehicles->Add(new SettingEntry("vehicle.cargo_spoilage_rate"));
+			vehicles->Add(new SettingEntry("vehicle.fuel_consumption"));
+			vehicles->Add(new ConditionallyHiddenSettingEntry("vehicle.fuel_tank_days_road", []() -> bool { return !GetGameSettings().vehicle.fuel_consumption; }));
+			vehicles->Add(new ConditionallyHiddenSettingEntry("vehicle.fuel_tank_days_rail", []() -> bool { return !GetGameSettings().vehicle.fuel_consumption; }));
+			vehicles->Add(new SettingEntry("vehicle.service_maintenance_cost"));
 		}
 
 		SettingsPage *limitations = main->Add(new SettingsPage(STR_CONFIG_SETTING_LIMITATIONS));

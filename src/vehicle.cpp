@@ -207,6 +207,16 @@ bool Vehicle::NeedsAutorenewing(const Company *c, bool use_renew_setting) const
 void VehicleServiceInDepot(Vehicle *v)
 {
 	dbg_assert(v != nullptr);
+
+	/* Refuel: the tank is filled up whenever the vehicle is serviced in a depot. */
+	if (v->fuel_used != 0) {
+		if (v->UsesFuelTank()) {
+			Debug(misc, 3, "Fuel: vehicle {} ({}) refuelled in depot at {}% (used {} units since last refuel)",
+					v->unitnumber, v->index, v->GetFuelLevelPercent(), v->fuel_used);
+		}
+		v->fuel_used = 0;
+		SetWindowDirty(WindowClass::VehicleDetails, v->index);
+	}
 	if (v->type == VehicleType::Train) {
 		Train *t = Train::From(v);
 		for (Train *u = t; u != nullptr; u = u->Next()) {
@@ -247,6 +257,225 @@ void VehicleServiceInDepot(Vehicle *v)
 	} while (v != nullptr && v->HasEngineType());
 }
 
+/*
+ * Fuel consumption and refuelling (openttd-motor realism).
+ *
+ * Fuel is counted in units of 1/100 of a tick at full power of a diesel engine. Every tick the front
+ * vehicle of a train or road vehicle uses (engine load in percent) * (consumption factor) / 100 units,
+ * see VehicleTickFuel. The engine load is worked out by GroundVehicle::DoUpdateSpeed.
+ * Used fuel is paid for once per vehicle period as running cost (PayVehicleFuelCost) and, for
+ * vehicles carrying their own fuel, drains the tank, which is filled up in VehicleServiceInDepot.
+ */
+
+/** Fuel properties of a power source. */
+struct FuelSourceInfo {
+	uint consumption; ///< Fuel units used per unit of work, in percent of a diesel engine.
+	uint price;       ///< Price of a fuel unit, in percent of diesel.
+	bool tank;        ///< True if the vehicle carries its own fuel, false if it takes power from the line.
+};
+
+/**
+ * Yearly fuel cost of running at full power the whole year, in percent of the vehicle's original
+ * yearly running cost, for a price factor of 100%. With the fixed running cost halved, this makes a
+ * vehicle on a typical schedule (average engine load 40% to 55%) cost about 1.3 to 1.6 times its original running cost.
+ */
+static constexpr uint FUEL_COST_SCALE = 200;
+
+/**
+ * Get the fuel properties of the power source of a vehicle.
+ * @param front Front vehicle of the consist; for trains the front engine decides.
+ * @return The fuel properties.
+ */
+static FuelSourceInfo GetFuelSourceInfo(const Vehicle *front)
+{
+	if (front->type == VehicleType::Train) {
+		switch (front->GetEngine()->VehInfo<RailVehicleInfo>().engclass) {
+			case EngineClass::Steam:  return { 170, 60, true };  // Coal is cheap, but a steam engine burns a lot of it.
+			case EngineClass::Diesel: return { 100, 100, true };
+			default:                  return { 100, 85, false }; // Electric, monorail and maglev take electricity from the line.
+		}
+	}
+	if (front->type == VehicleType::Road && RoadTypeIsTram(RoadVehicle::From(front)->roadtype)) return { 100, 85, false }; // Trams are electric.
+	return { 100, 100, true }; // Diesel road vehicle.
+}
+
+/**
+ * Check whether fuel consumption applies to this vehicle at all (front of a train or road vehicle).
+ * @param v The vehicle.
+ * @return True if fuel is consumed and paid for by this vehicle.
+ */
+static bool VehicleUsesFuel(const Vehicle *v)
+{
+	if (!_settings_game.vehicle.fuel_consumption) return false;
+	switch (v->type) {
+		case VehicleType::Train: return Train::From(v)->IsFrontEngine();
+		case VehicleType::Road:  return RoadVehicle::From(v)->IsFrontEngine();
+		default:                 return false;
+	}
+}
+
+/**
+ * Does this vehicle carry a fuel tank that must be refilled in a depot?
+ * @return True for the front of steam/diesel trains and non-tram road vehicles, when fuel consumption is enabled.
+ */
+bool Vehicle::UsesFuelTank() const
+{
+	return VehicleUsesFuel(this) && GetFuelSourceInfo(this).tank;
+}
+
+/**
+ * Get the size of the fuel tank of this vehicle.
+ * @return The tank size in fuel units (days of full-power running, from the settings).
+ */
+uint32_t Vehicle::GetFuelTankCapacity() const
+{
+	uint days = (this->type == VehicleType::Train) ? _settings_game.vehicle.fuel_tank_days_rail : _settings_game.vehicle.fuel_tank_days_road;
+	return std::max<uint>(1, days) * DAY_TICKS * FUEL_LOAD_FULL;
+}
+
+/**
+ * Get the fuel level of this vehicle.
+ * @return Fuel left in the tank, in percent (0 to 100).
+ */
+uint Vehicle::GetFuelLevelPercent() const
+{
+	const uint32_t capacity = this->GetFuelTankCapacity();
+	if (this->fuel_used >= capacity) return 0;
+	return static_cast<uint>((static_cast<uint64_t>(capacity - this->fuel_used) * 100) / capacity);
+}
+
+/**
+ * Is this vehicle low on fuel, so it should look for a depot to refuel?
+ * @return True if the vehicle has a fuel tank which is below #FUEL_LOW_PERCENT.
+ */
+bool Vehicle::NeedsRefuelling() const
+{
+	return this->UsesFuelTank() && this->GetFuelLevelPercent() < FUEL_LOW_PERCENT;
+}
+
+/**
+ * Has this vehicle run out of fuel? It is then limited to #FUEL_EMPTY_SPEED_PERCENT of its maximum speed.
+ * @return True if the vehicle has a fuel tank which is empty.
+ */
+bool Vehicle::IsOutOfFuel() const
+{
+	return this->UsesFuelTank() && this->fuel_used >= this->GetFuelTankCapacity();
+}
+
+/**
+ * Use fuel for one tick. Called for the front of every train and road vehicle after its tick.
+ * @param v The front vehicle.
+ */
+void VehicleTickFuel(Vehicle *v)
+{
+	uint load = v->fuel_load_this_tick;
+	v->fuel_load_this_tick = 0;
+	if (!VehicleUsesFuel(v)) return;
+
+	if (v->cur_speed == 0) {
+		/* Engine switched off: stopped by the player, crashed or parked in a depot. */
+		if (v->vehstatus.Any({VehState::Stopped, VehState::Crashed}) || v->IsInDepot()) return;
+		/* Standing with the engine running: loading, waiting at a signal or in a queue. */
+		load = FUEL_LOAD_IDLE;
+	} else if (load == 0) {
+		/* Moving without a speed update this tick. */
+		load = FUEL_LOAD_IDLE;
+	} else if (v->type == VehicleType::Road && RoadVehicle::From(v)->blocked_ctr != 0) {
+		/* Held back behind another road vehicle: following its pace, not accelerating. */
+		load = std::min<uint>(load, FUEL_LOAD_CRUISE);
+	}
+
+	const FuelSourceInfo info = GetFuelSourceInfo(v);
+	const uint32_t units = load * info.consumption / 100;
+	v->fuel_unpaid = std::min<uint64_t>(static_cast<uint64_t>(v->fuel_unpaid) + units, UINT32_MAX);
+
+	if (info.tank) {
+		const uint32_t capacity = v->GetFuelTankCapacity();
+		const bool was_low = v->GetFuelLevelPercent() < FUEL_LOW_PERCENT;
+		const bool was_empty = v->fuel_used >= capacity;
+		v->fuel_used = static_cast<uint32_t>(std::min<uint64_t>(static_cast<uint64_t>(v->fuel_used) + units, capacity));
+		if (!was_low && v->GetFuelLevelPercent() < FUEL_LOW_PERCENT) {
+			Debug(misc, 3, "Fuel: vehicle {} ({}) is low on fuel ({}%), looking for a depot", v->unitnumber, v->index, v->GetFuelLevelPercent());
+			SetWindowDirty(WindowClass::VehicleDetails, v->index);
+		}
+		if (!was_empty && v->fuel_used >= capacity) {
+			Debug(misc, 3, "Fuel: vehicle {} ({}) ran out of fuel, speed limited to {}%", v->unitnumber, v->index, FUEL_EMPTY_SPEED_PERCENT);
+			SetWindowDirty(WindowClass::VehicleDetails, v->index);
+		}
+	}
+}
+
+/**
+ * Get the part of the fixed (time based) running cost which is still charged.
+ * With fuel consumption enabled only half of the running cost is fixed, fuel makes up the rest.
+ * @param cost The original yearly running cost.
+ * @return The fixed yearly running cost.
+ */
+Money ApplyFuelFixedRunningCostShare(Money cost)
+{
+	return _settings_game.vehicle.fuel_consumption ? cost / 2 : cost;
+}
+
+/**
+ * Pay for the fuel used since the last payment, as running cost of the vehicle.
+ * Cost = full_running_cost * used_units * price% * FUEL_COST_SCALE% / (fuel units in a year at full power),
+ * so it follows inflation and NewGRF cost factors like the normal running cost.
+ * @param v The front vehicle.
+ * @param full_running_cost The original yearly running cost of the consist (not reduced while stopped).
+ */
+void PayVehicleFuelCost(Vehicle *v, Money full_running_cost)
+{
+	if (v->fuel_unpaid == 0) return;
+	const uint32_t units = v->fuel_unpaid;
+	v->fuel_unpaid = 0;
+	if (!VehicleUsesFuel(v)) return;
+
+	const FuelSourceInfo info = GetFuelSourceInfo(v);
+	constexpr int64_t units_per_year_at_full_power = static_cast<int64_t>(DAYS_IN_YEAR) * DAY_TICKS * FUEL_LOAD_FULL;
+	const Money cost = full_running_cost * static_cast<int64_t>(units) * static_cast<int64_t>(info.price * FUEL_COST_SCALE) / Money(units_per_year_at_full_power * 100 * 100);
+
+	CommandCost fuel_cost(v->type == VehicleType::Train ? ExpensesType::TrainRun : ExpensesType::RoadVehRun, cost);
+	v->profit_this_year -= fuel_cost.GetCost();
+	SubtractMoneyFromCompanyFract(v->owner, fuel_cost);
+
+	Debug(misc, 4, "Fuel: vehicle {} ({}) paid {} for {} fuel units (running ticks {}), tank {}%",
+			v->unitnumber, v->index, fuel_cost.GetCost() >> 8, units, v->running_ticks, v->UsesFuelTank() ? v->GetFuelLevelPercent() : 100);
+}
+
+/**
+ * Charge the workshop ("oficina") cost of servicing a vehicle in a depot:
+ * 0.5% of the current value of each part, increased by 10% per year of age of that part.
+ * @param v The front vehicle which was serviced.
+ */
+static void PayVehicleServiceMaintenance(Vehicle *v)
+{
+	if (!_settings_game.vehicle.service_maintenance_cost) return;
+
+	ExpensesType type;
+	switch (v->type) {
+		case VehicleType::Train:    type = ExpensesType::TrainRun; break;
+		case VehicleType::Road:     type = ExpensesType::RoadVehRun; break;
+		case VehicleType::Ship:     type = ExpensesType::ShipRun; break;
+		case VehicleType::Aircraft: type = ExpensesType::AircraftRun; break;
+		default: return;
+	}
+
+	Money cost = 0;
+	for (const Vehicle *u = v; u != nullptr; u = u->Next()) {
+		if (u->value <= 0) continue;
+		/* value * 0.5% * (1 + age_in_years / 10) = value * (3650 + age_in_days) / 730000 */
+		const int64_t age_days = std::max<int64_t>(0, u->age.base());
+		cost += u->value * (static_cast<int64_t>(DAYS_IN_YEAR) * 10 + age_days) / Money(static_cast<int64_t>(DAYS_IN_YEAR) * 2000);
+	}
+	if (cost <= 0) return;
+
+	CommandCost maintenance(type, cost);
+	v->profit_this_year -= maintenance.GetCost() << 8;
+	SubtractMoneyFromCompany(v->owner, maintenance);
+	if (v->owner == _local_company) ShowCostOrIncomeAnimation(v->x_pos, v->y_pos, v->z_pos, maintenance.GetCost());
+	Debug(misc, 3, "Maintenance: vehicle {} ({}) serviced in depot, workshop cost {}", v->unitnumber, v->index, maintenance.GetCost());
+}
+
 /**
  * Check if the vehicle needs to go to a depot in near future (if a opportunity presents itself) for service or replacement.
  *
@@ -258,6 +487,9 @@ bool Vehicle::NeedsServicing() const
 	/* Stopped or crashed vehicles will not move, as such making unmovable
 	 * vehicles to go for service is lame. */
 	if (this->vehstatus.Any({VehState::Stopped, VehState::Crashed})) return false;
+
+	/* Low on fuel: look for a depot to refuel, whatever the service interval and breakdown settings. */
+	if (this->NeedsRefuelling()) return true;
 
 	bool service_not_due;
 	/* Service intervals can be measured in different units, which we handle individually. */
@@ -1720,6 +1952,7 @@ void CallVehicleTicks()
 		for (Train *front : _tick_train_front_cache) {
 			v = front;
 			if (!front->Train::Tick()) continue;
+			VehicleTickFuel(front);
 			for (Train *u = front; u != nullptr; u = u->Next()) {
 				u->tick_counter++;
 				VehicleTickCargoAging(u);
@@ -1733,6 +1966,7 @@ void CallVehicleTicks()
 		for (RoadVehicle *front : _tick_road_veh_front_cache) {
 			v = front;
 			if (!front->RoadVehicle::Tick()) continue;
+			VehicleTickFuel(front);
 			for (RoadVehicle *u = front; u != nullptr; u = u->Next()) {
 				u->tick_counter++;
 				VehicleTickCargoAging(u);
@@ -2788,6 +3022,7 @@ void VehicleEnterDepot(Vehicle *v)
 	v->cur_speed = 0;
 
 	VehicleServiceInDepot(v);
+	PayVehicleServiceMaintenance(v);
 
 	/* Store that the vehicle entered a depot this tick */
 	VehicleEnteredDepotThisTick(v);

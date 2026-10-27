@@ -199,6 +199,8 @@ enum SlXvFeatureIndex {
 	XSLFI_TABLE_LINKGRAPH_SL,                     ///< Use table format for link graph chunks:
 	XSLFI_TABLE_VEHICLE_SL,                       ///< Use table format for vehicle chunks:
 
+	XSLFI_MOTOR_VEHICLE_FUEL,                     ///< openttd-motor: vehicle fuel tank level and unpaid fuel (Vehicle::fuel_used, Vehicle::fuel_unpaid)
+
 	XSLFI_RIFF_HEADER_60_BIT,                     ///< Size field in RIFF chunk header is 60 bit
 	XSLFI_HEIGHT_8_BIT,                           ///< Map tile height is 8 bit instead of 4 bit, but savegame version may be before this became true in trunk
 	XSLFI_ZPOS_32_BIT,                            ///< Vehicle/sign z_pos is 32 bit instead of 8 bit, but savegame version may be before this became true in trunk

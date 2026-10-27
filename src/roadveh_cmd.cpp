@@ -2217,7 +2217,11 @@ static bool RoadVehController(RoadVehicle *v)
 	return true;
 }
 
-Money RoadVehicle::GetRunningCost() const
+/**
+ * Get the original running cost of the road vehicle, as if it was moving and without fuel accounting.
+ * @return Yearly running costs.
+ */
+Money RoadVehicle::GetFullRunningCost() const
 {
 	const Engine *e = this->GetEngine();
 	if (e->VehInfo<RoadVehicleInfo>().running_cost_class == Price::Invalid) return 0;
@@ -2225,7 +2229,17 @@ Money RoadVehicle::GetRunningCost() const
 	uint cost_factor = GetVehicleProperty(this, PROP_ROADVEH_RUNNING_COST_FACTOR, e->VehInfo<RoadVehicleInfo>().running_cost);
 	if (cost_factor == 0) return 0;
 
-	Money cost = GetPrice(e->VehInfo<RoadVehicleInfo>().running_cost_class, cost_factor, e->GetGRF());
+	return GetPrice(e->VehInfo<RoadVehicleInfo>().running_cost_class, cost_factor, e->GetGRF());
+}
+
+/**
+ * Get running cost of the road vehicle.
+ * With fuel consumption enabled this is only the fixed part; fuel is paid separately, see PayVehicleFuelCost.
+ * @return Yearly running costs.
+ */
+Money RoadVehicle::GetRunningCost() const
+{
+	Money cost = ApplyFuelFixedRunningCostShare(this->GetFullRunningCost());
 
 	if (this->cur_speed == 0) {
 		if (this->IsInDepot()) {
@@ -2275,13 +2289,16 @@ void RoadVehicle::SetRoadVehicleOvertaking(uint8_t overtaking)
 static void CheckIfRoadVehNeedsService(RoadVehicle *v)
 {
 	/* If we already got a slot at a stop, use that FIRST, and go to a depot later */
-	if (Company::Get(v->owner)->settings.vehicle.servint_roadveh == 0 || !v->NeedsAutomaticServicing()) return;
+	/* A road vehicle low on fuel looks for a depot even when servicing is disabled. */
+	if ((Company::Get(v->owner)->settings.vehicle.servint_roadveh == 0 && !v->NeedsRefuelling()) || !v->NeedsAutomaticServicing()) return;
 	if (v->IsChainInDepot()) {
 		VehicleServiceInDepot(v);
 		return;
 	}
 
 	uint max_penalty = _settings_game.pf.yapf.maximum_go_to_depot_penalty;
+	/* Running out of fuel: accept a depot further out of the way. */
+	if (v->NeedsRefuelling()) max_penalty *= FUEL_LOW_DEPOT_PENALTY_FACTOR;
 
 	FindDepotData rfdd = FindClosestRoadDepot(v, max_penalty * (v->current_order.IsType(OT_GOTO_DEPOT) ? 2 : 1));
 	/* Only go to the depot if it is not too far out of our way. */
@@ -2329,6 +2346,9 @@ void RoadVehicle::OnPeriodic()
 	CheckIfRoadVehNeedsService(this);
 
 	CheckOrders(this);
+
+	/* fuel used since the last period */
+	PayVehicleFuelCost(this, this->GetFullRunningCost());
 
 	if (this->running_ticks == 0) return;
 

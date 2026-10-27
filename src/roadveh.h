@@ -176,6 +176,7 @@ struct RoadVehicle final : public GroundVehicle<RoadVehicle, VehicleType::Road> 
 	int GetDisplaySpeed() const override { return this->gcache.last_speed / 2; }
 	int GetDisplayMaxSpeed() const override { return this->vcache.cached_max_speed / 2; }
 	Money GetRunningCost() const override;
+	Money GetFullRunningCost() const;
 	int GetDisplayImageWidth(Point *offset = nullptr) const;
 	bool IsInDepot() const override { return this->state == RVSB_IN_DEPOT; }
 	bool Tick() override;
