@@ -22,7 +22,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Setup vcpkg
       id: vcpkg
@@ -72,7 +72,7 @@ jobs:
         7z a -tzip OpenTTD-Pedro-windows-x64.zip OpenTTD-Pedro > /dev/null
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: OpenTTD-Pedro-windows-x64
         path: pacote/OpenTTD-Pedro-windows-x64.zip
