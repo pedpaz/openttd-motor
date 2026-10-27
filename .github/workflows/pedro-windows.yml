@@ -87,9 +87,9 @@ jobs:
         unzip -q ogfx.zip -d baseset && rm ogfx.zip
         cp ../../hd/opengfx2-highdef.tar baseset/
         mkdir -p newgrf
-        cp ../../frota/build/frota.grf newgrf/
+        cp ../../frota/build/frota.grf ../../frota/build/cenario.grf newgrf/
         # config portátil: o jogo usa esta pasta para tudo, já liga o mod e o cenário HD
-        printf '[graphicsset]\nname = %s\n\n[newgrf]\nfrota.grf = \n' "$(cat ../../hd/nome.txt)" > openttd.cfg
+        printf '[graphicsset]\nname = %s\n\n[newgrf]\nfrota.grf = \ncenario.grf = \n' "$(cat ../../hd/nome.txt)" > openttd.cfg
         cat openttd.cfg
         cd ..
         7z a -tzip OpenTTD-Pedro-windows-x64.zip OpenTTD-Pedro > /dev/null
@@ -109,4 +109,4 @@ jobs:
         gh release create versao-teste pacote/OpenTTD-Pedro-windows-x64.zip hd/opengfx2-highdef.tar \
           -R "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease \
           --title "Versão de teste ($(git rev-parse --short HEAD))" \
-          --notes "Baixe o .zip, extraia e abra openttd.exe. Já vem com o cenário OpenGFX2 High Def e o mod de veículos ativados."
+          --notes "Baixe o .zip, extraia e abra openttd.exe. Já vem com o cenário OpenGFX2 High Def, o mod de veículos e o mod de cenário ativados."
