@@ -79,14 +79,14 @@ Num trem com várias locomotivas, quem decide a fonte é a locomotiva da frente.
 |---|---|---|---|
 | `vehicle.cargo_spoilage_rate` | 2 | 0–20 (% por período; 0 = desligado) | Perda de carga perecível |
 | `vehicle.fuel_consumption` | ligado | liga/desliga | Combustível por esforço + tanque + custo fixo pela metade |
-| `vehicle.fuel_tank_days_road` | 8 | 1–60 dias | Tanque dos automóveis |
-| `vehicle.fuel_tank_days_rail` | 12 | 1–60 dias | Tanque dos trens (vapor/diesel) |
+| `vehicle.fuel_tank_days_road` | 40 | 1–120 dias | Tanque dos automóveis |
+| `vehicle.fuel_tank_days_rail` | 60 | 1–120 dias | Tanque dos trens (vapor/diesel) |
 | `vehicle.service_maintenance_cost` | ligado | liga/desliga | Custo da oficina na revisão |
 
 ## Para conferir no jogo (log)
 
 Rodando com `-d misc=3` o jogo escreve no console:
-- `Fuel: vehicle N (...) is low on fuel (24%), looking for a depot`
+- `Fuel: vehicle N (...) is low on fuel (34%), looking for a depot`
 - `Fuel: vehicle N (...) refuelled in depot at X% ...`
 - `Fuel: vehicle N (...) ran out of fuel, speed limited to 25%`
 - `Maintenance: vehicle N (...) serviced in depot, workshop cost X`
