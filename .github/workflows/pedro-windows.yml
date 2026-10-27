@@ -52,6 +52,27 @@ jobs:
         git clone --depth 1 https://github.com/pedpaz/openttd-frota frota
         cd frota && ./construir.sh
 
+    - name: Baixar cenário em alta definição (OpenGFX2 High Def, GPL v2)
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        mkdir -p hd
+        gh release list -R OpenTTD/OpenGFX2 --limit 15 || true
+        for tag in $(gh release list -R OpenTTD/OpenGFX2 --limit 15 --json tagName --jq '.[].tagName'); do
+          gh release view "$tag" -R OpenTTD/OpenGFX2 --json assets --jq '.assets[].name' | sed "s/^/  $tag: /"
+          if gh release download "$tag" -R OpenTTD/OpenGFX2 --pattern '*HighDef*' -D hd --clobber; then
+            echo "OpenGFX2 High Def: $tag"; break
+          fi
+        done
+        cd hd
+        for z in *.zip; do [ -f "$z" ] && unzip -o -q "$z" && rm "$z"; done
+        ls -la
+        T=$(ls *.tar | head -1)
+        tar -xOf "$T" --wildcards '*.obg' | grep -E '^name' | head -1 | sed 's/^name *= *//' > nome.txt
+        echo "nome do conjunto: $(cat nome.txt)"
+        cp "$T" opengfx2-highdef.tar
+
     - name: Package
       shell: bash
       run: |
@@ -64,10 +85,12 @@ jobs:
         cp ../../COPYING.md . 2>/dev/null || true
         curl -sSL https://cdn.openttd.org/opengfx-releases/7.1/opengfx-7.1-all.zip -o ogfx.zip
         unzip -q ogfx.zip -d baseset && rm ogfx.zip
+        cp ../../hd/opengfx2-highdef.tar baseset/
         mkdir -p newgrf
         cp ../../frota/build/frota.grf newgrf/
-        # config portátil: o jogo usa esta pasta para tudo e já liga o mod
-        printf '[newgrf]\nfrota.grf = \n' > openttd.cfg
+        # config portátil: o jogo usa esta pasta para tudo, já liga o mod e o cenário HD
+        printf '[graphicsset]\nname = %s\n\n[newgrf]\nfrota.grf = \n' "$(cat ../../hd/nome.txt)" > openttd.cfg
+        cat openttd.cfg
         cd ..
         7z a -tzip OpenTTD-Pedro-windows-x64.zip OpenTTD-Pedro > /dev/null
 
@@ -83,7 +106,7 @@ jobs:
         GH_TOKEN: ${{ github.token }}
       run: |
         gh release delete versao-teste --yes --cleanup-tag -R "$GITHUB_REPOSITORY" || true
-        gh release create versao-teste pacote/OpenTTD-Pedro-windows-x64.zip \
+        gh release create versao-teste pacote/OpenTTD-Pedro-windows-x64.zip hd/opengfx2-highdef.tar \
           -R "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease \
           --title "Versão de teste ($(git rev-parse --short HEAD))" \
-          --notes "Baixe o .zip, extraia e abra openttd.exe. Já vem com os gráficos OpenGFX e o mod de veículos ativado."
+          --notes "Baixe o .zip, extraia e abra openttd.exe. Já vem com o cenário OpenGFX2 High Def e o mod de veículos ativados."
