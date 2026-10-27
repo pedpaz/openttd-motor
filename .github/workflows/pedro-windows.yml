@@ -48,7 +48,7 @@ jobs:
     - name: Build mod de veículos
       shell: bash
       run: |
-        pip install nml pillow
+        pip install nml pillow numpy
         git clone --depth 1 https://github.com/pedpaz/openttd-frota frota
         cd frota && ./construir.sh
 
