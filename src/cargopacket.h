@@ -510,6 +510,8 @@ public:
 
 	void AgeCargo();
 
+	uint Spoil(uint16_t max_periods_in_transit, uint rate_percent);
+
 	void InvalidateCache();
 
 	bool Stage(bool accepted, StationID current_station, std::span<const StationID> next_station, OrderUnloadType unload_type, const GoodsEntry *ge, CargoType cargo, CargoPayment *payment, TileIndex current_tile);

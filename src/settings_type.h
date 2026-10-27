@@ -873,6 +873,7 @@ struct VehicleSettings {
 	uint16_t               through_load_speed_limit;              ///< maximum speed for through load
 	uint16_t               rail_depot_speed_limit;                ///< maximum speed entering/existing rail depots
 	bool                   non_leading_engines_keep_name;         ///< allow engines moved to a non-leading position to retain their custom name
+	uint8_t                cargo_spoilage_rate;                   ///< percentage of overdue perishable cargo lost per cargo aging period (0 = disabled)
 };
 
 /** Settings related to the economy. */

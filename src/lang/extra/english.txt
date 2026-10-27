@@ -789,6 +789,11 @@ STR_CONFIG_SETTING_PAY_FOR_REPAIR_VEHICLE_HELPTEXT              :Pay for repairi
 STR_CONFIG_SETTING_REPAIR_COST                                  :Cost of repairing vehicles: 1/{STRING2} of vehicle cost
 STR_CONFIG_SETTING_REPAIR_COST_HELPTEXT                         :Cost of repairing vehicles which have broken down, as a fraction of the current purchase cost of the vehicle. The cost is doubled if the vehicle is older than its maximum age.
 
+STR_CONFIG_SETTING_CARGO_SPOILAGE_RATE                          :Perishable cargo spoilage: {STRING2}
+STR_CONFIG_SETTING_CARGO_SPOILAGE_RATE_HELPTEXT                 :Perishable cargo (refrigerated cargo, livestock, food, fruit, fish and milk) which stays in a vehicle for longer than its cargo payment time limits loses this percentage of its amount at every further cargo aging period. Mail never spoils. Set to 0 to disable
+STR_CONFIG_SETTING_CARGO_SPOILAGE_RATE_VALUE                    :{COMMA}% per aging period
+STR_CONFIG_SETTING_CARGO_SPOILAGE_RATE_DISABLED                 :Disabled
+
 STR_CONFIG_OCCUPANCY_SMOOTHNESS                                 :Smoothness of order occupancy measurement: {STRING2}
 STR_CONFIG_OCCUPANCY_SMOOTHNESS_HELPTEXT                        :0% sets the measurement to the most recent value, 100% leaves it unchanged
 

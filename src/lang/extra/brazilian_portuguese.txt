@@ -6,6 +6,11 @@ STR_UNIT_NAME_VELOCITY_GAMEUNITS_WALLCLOCK                      :quadrados/s
 
 STR_BUTTON_RENAME                                               :{BLACK}Renomear
 
+STR_CONFIG_SETTING_CARGO_SPOILAGE_RATE                          :Perda de carga perecível: {STRING2}
+STR_CONFIG_SETTING_CARGO_SPOILAGE_RATE_HELPTEXT                 :Carga perecível (refrigerada, gado, alimentos, frutas, peixe e leite) que fica no veículo além do prazo de pagamento da carga perde esta porcentagem da quantidade a cada período de envelhecimento seguinte. Correio nunca estraga. Use 0 para desligar
+STR_CONFIG_SETTING_CARGO_SPOILAGE_RATE_VALUE                    :{COMMA}% por período de envelhecimento
+STR_CONFIG_SETTING_CARGO_SPOILAGE_RATE_DISABLED                 :Desligado
+
 STR_VEHICLE_TYPE_TRAINS                                         :Trens
 STR_VEHICLE_TYPE_ROAD_VEHICLES                                  :Automóveis
 STR_VEHICLE_TYPE_SHIPS                                          :Embarcações

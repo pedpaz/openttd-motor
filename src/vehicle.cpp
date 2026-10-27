@@ -1550,12 +1550,60 @@ void ValidateVehicleTickCaches(std::function<void(std::string_view)> log)
 	if (effect_veh_was_valid) check(saved_tick_effect_veh_cache, _tick_effect_veh_cache, "Effect vehicle");
 }
 
+/**
+ * Is this cargo perishable, i.e. does it spoil when it stays in a vehicle for too long?
+ * @param cs The cargo.
+ * @return True for refrigerated cargo, livestock, food, fruit, fish and milk; never for mail.
+ */
+static bool IsCargoPerishable(const CargoSpec *cs)
+{
+	if (cs->classes.Test(CargoClass::Mail)) return false;
+	if (cs->classes.Test(CargoClass::Refrigerated)) return true;
+	static constexpr CargoLabel perishable_labels[] = { CT_LIVESTOCK, CT_FOOD, CT_FRUIT, CargoLabel{"FISH"}, CargoLabel{"MILK"} };
+	return std::ranges::find(perishable_labels, cs->label) != std::end(perishable_labels);
+}
+
+/**
+ * Spoil perishable cargo of a vehicle part which has been in transit longer than the cargo's
+ * payment time limits (transit_periods[0] + transit_periods[1]). Called after each cargo aging step.
+ * @param v The vehicle part whose cargo was just aged.
+ */
+static void SpoilVehicleCargo(Vehicle *v)
+{
+	const uint rate = _settings_game.vehicle.cargo_spoilage_rate;
+	if (rate == 0 || v->cargo.StoredCount() == 0 || !IsValidCargoType(v->cargo_type)) return;
+
+	const CargoSpec *cs = CargoSpec::Get(v->cargo_type);
+	if (!IsCargoPerishable(cs)) return;
+
+	/* Only spoil cargo on the move: cargo being loaded or unloaded at a station is left alone. */
+	Vehicle *front = v->First();
+	if (front->current_order.IsType(OT_LOADING)) return;
+
+	const uint16_t max_age = cs->transit_periods[0] + cs->transit_periods[1];
+	const uint lost = v->cargo.Spoil(max_age, rate);
+	if (lost == 0) return;
+
+	Debug(misc, 3, "Spoilage: vehicle {} ({}) lost {} of {} (over {} aging periods in transit), {} left",
+			front->unitnumber, v->index, lost, cs->label, max_age, v->cargo.StoredCount());
+
+	/* Less cargo means less weight. */
+	if (front->type == VehicleType::Train) {
+		Train::From(front)->CargoChanged();
+	} else if (front->type == VehicleType::Road && _settings_game.vehicle.roadveh_acceleration_model != AccelerationModel::Original) {
+		RoadVehicle::From(front)->CargoChanged();
+	}
+	SetWindowDirty(WindowClass::VehicleDetails, front->index);
+	DirtyVehicleListWindowForVehicle(front);
+}
+
 void VehicleTickCargoAging(Vehicle *v)
 {
 	if (v->vcache.cached_cargo_age_period != 0) {
 		v->cargo_age_counter = std::min(v->cargo_age_counter, v->vcache.cached_cargo_age_period);
 		if (--v->cargo_age_counter == 0) {
 			v->cargo.AgeCargo();
+			SpoilVehicleCargo(v);
 			v->cargo_age_counter = v->vcache.cached_cargo_age_period;
 		}
 	}

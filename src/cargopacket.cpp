@@ -606,6 +606,41 @@ void VehicleCargoList::AgeCargo()
 }
 
 /**
+ * Spoil perishable cargo which has been in transit for too long.
+ * Every packet older than \a max_periods_in_transit loses ceil(count * rate_percent / 100) of its cargo;
+ * packets which end up empty are deleted. Caches and designation counts are updated as for normal removal.
+ * Only done while all cargo is designated to be kept (i.e. the vehicle is not loading or unloading).
+ * @param max_periods_in_transit Age (in cargo aging periods) above which cargo spoils.
+ * @param rate_percent Percentage of each overdue packet lost.
+ * @return Amount of cargo lost.
+ */
+uint VehicleCargoList::Spoil(uint16_t max_periods_in_transit, uint rate_percent)
+{
+	if (rate_percent == 0 || this->action_counts[MoveToAction::Keep] != this->count) return 0;
+
+	uint lost = 0;
+	for (Iterator it = this->packets.begin(); it != this->packets.end();) {
+		CargoPacket *cp = *it;
+		if (cp->periods_in_transit <= max_periods_in_transit) {
+			++it;
+			continue;
+		}
+
+		const uint remove = std::min<uint>(cp->count, CeilDiv(cp->count * rate_percent, 100));
+		this->RemoveFromMeta(cp, MoveToAction::Keep, remove);
+		lost += remove;
+		if (remove == cp->count) {
+			delete cp;
+			it = this->packets.erase(it);
+		} else {
+			cp->Reduce(remove);
+			++it;
+		}
+	}
+	return lost;
+}
+
+/**
  * Choose action to be performed with the given cargo packet.
  * @param cp The packet.
  * @param cargo_next Next hop the cargo wants to pass.
